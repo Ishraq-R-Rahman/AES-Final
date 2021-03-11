@@ -1,6 +1,10 @@
 from BitVector import *
 import datetime
 from collections import deque
+import binascii
+import PyPDF2
+from PIL import Image
+
 
 # CONSTANTS ARE GENERATED OR HARDCODED HERE
 
@@ -251,7 +255,7 @@ def mix_column(shiftedMatrix):
 
 def encrypt( plainText , roundKeys , decode ):
     
-    convertedPlainText = convert_to_matrix( plainText.decode(decode) , 'plain' )
+    convertedPlainText = convert_to_matrix( plainText.decode(decode, 'ignore') , 'plain' )
     convertedKeyMatrix = transpose_matrix( convert_1D_to_2D_array( 4 , roundKeys[0] ) )
 
     # For Round - 0:
@@ -449,6 +453,85 @@ def main():
         print("\n\nDeciphered Text: \n[In Hex] : ", plainTextInHex)
         print("[In ASCII] : ", plainText)
         print("Length of the text : ", len(plainText))
+
+    elif choice == '2':
+        pdfFile = open('demofile.pdf' , 'rb')
+
+        pdfReader = PyPDF2.PdfFileReader( pdfFile )
+
+        plainText = ''
+
+        for i in range( pdfReader.numPages ):
+            pageObj = pdfReader.getPage(i)
+            plainText += pageObj.extractText()
+
+        
+        pdfFile.close()
+
+
+        cipherText, cipherTextInHex, paddingSpace, encryptionTime = encrypt_file( bytes(plainText,code) , roundKeys , code)
+        
+        with open('encryptedTextFile.txt', 'w' , encoding=code) as f:
+            f.writelines(cipherText + "," + str(paddingSpace))
+
+        
+        # Decryption Section
+        f = open("encryptedTextFile.txt", "rb")
+        cipherText = f.read().decode(code)
+
+        position = cipherText.rfind(',')
+        text = cipherText[:position]
+        paddingSpace = cipherText[position + 1: len(cipherText)]
+
+
+        plainText, plainTextInHex, decryptionTime = decrypt_file( text , roundKeys , code )
+
+        # removing the extra space added to have 16 chars
+        plainText = (int(paddingSpace) !=
+                     0) and plainText[:-int(paddingSpace)] or plainText
+
+        print("\n\nDeciphered Text: \n[In Hex] : ", plainTextInHex)
+        print("[In ASCII] : ", plainText)
+        print("Length of the text : ", len(plainText))
+    
+    elif choice == '3':
+        with open('syed.jpg', 'rb' ) as f:
+            content = f.read()
+
+        
+
+        plainText = binascii.hexlify(content).decode('mac_roman')
+
+        cipherText, cipherTextInHex, paddingSpace, encryptionTime = encrypt_file( bytes(plainText,code) , roundKeys , code )
+
+        with open('encryptedTextFile.txt', 'w' , encoding='utf-8', errors='ignore') as f:
+            f.writelines(cipherText + "," + str(paddingSpace))
+
+        
+        # Decryption Section
+        f = open("encryptedTextFile.txt", "rb")
+        cipherText = f.read().decode(code)
+
+        position = cipherText.rfind(',')
+        text = cipherText[:position]
+        paddingSpace = cipherText[position + 1: len(cipherText)]
+
+
+        plainText, plainTextInHex, decryptionTime = decrypt_file( text , roundKeys , code )
+
+        # removing the extra space added to have 16 chars
+        plainText = (int(paddingSpace) !=
+                     0) and plainText[:-int(paddingSpace)] or plainText
+
+        returnedImage = binascii.unhexlify(plainText)
+
+        with open( "outputImage" , 'wb' ) as f:
+            f.write( returnedImage )
+        
+        Image.open('outputImage').save('outputImage' + '.png', 'PNG')
+        
+
+        
 
     print("\n\nStats:")
     print("Key Scheduling Time: ", keySchedulingTime)
