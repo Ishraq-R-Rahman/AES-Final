@@ -523,7 +523,7 @@ def main():
         plainText = (int(paddingSpace) !=
                      0) and plainText[:-int(paddingSpace)] or plainText
 
-        returnedImage = binascii.unhexlify(plainText)
+        returnedImage = bytes(plainText)
 
         with open( "outputImage" , 'wb' ) as f:
             f.write( returnedImage )
